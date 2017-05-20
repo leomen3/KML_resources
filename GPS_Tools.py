@@ -28,7 +28,7 @@ def parse_NMEA2db(filename):
     """Open the nmea file, from each GGA message extract:
     time, longitude, latitude and write to csv and SQL"""
     f_in = open(filename,"r")
-    fname_out = file_name+".csv"
+    fname_out = filename+".csv"
     f_out = open(fname_out, "w")
     reader = pynmea2.NMEAStreamReader(f_in,'ignore')
     msg = "Start"
@@ -39,7 +39,7 @@ def parse_NMEA2db(filename):
         for msg in reader.next():
             try:
                 if msg.sentence_type == 'GGA':
-                    pos_time = msg.timestamp
+                    pos_time = str(msg.timestamp.hour)+str(msg.timestamp.minute)+str(msg.timestamp.second)+"."+str(msg.timestamp.microsecond)
                     pos_lat = msg.lat
                     pos_lon = msg.lon
                     write_sentence = pack_line(pos_time, pos_lon, pos_lat)
@@ -80,24 +80,28 @@ def compare_position(file1, file2):
             if distance_diff.has_key(pos_time):
                 pos_lon1, pos_lat1 = distance_diff[pos_time]
                 dist = calculate_distance(pos_lon1, pos_lat1, pos_lon2, pos_lat2)
-                distance_diff[pos_time].append(pos_lon2, pos_lat2, dist)
+                distance_diff[pos_time].extend([pos_lon2, pos_lat2, dist])
 
     # fill distance_diff with dist, discard entries where there is missing a measurement
     out_fname = "dist"+time.asctime().replace(" ","_")+".csv"
+    keys_to_pop = []
     with open(out_fname,"w") as f:
         for key, value in distance_diff.iteritems():
             if len(value) < 5:
-                distance_diff.pop(key)
+                keys_to_pop.append(key)
             else:
-                f.write(str(key)+" : "+str(value))
+                f.write(str(key)+" : "+str(value)+"\n")
+        for key in keys_to_pop:
+            distance_diff.pop(key)
     return
 
 if __name__ == '__main__':
-    #file_name = "/home/leo/PycharmProjects/KML_resources/bak/Teseo.log"
-    #file_name = "/home/leo/PycharmProjects/KML_resources/bak/Ground_Truth.log"
-    #parse_NMEA2db(file_name)
-    file_name1 = "/home/leo/PycharmProjects/KML_resources/bak/Teseo.log.csv"
-    file_name2 = "/home/leo/PycharmProjects/KML_resources/bak/Ground_Truth.log.csv"
-    compare_position(file_name1, file_name2)
+    file_name1 = "/home/leo/PycharmProjects/KML_resources/bak/Teseo.log"
+    file_name2 = "/home/leo/PycharmProjects/KML_resources/bak/Ground_Truth.log"
+    parse_NMEA2db(file_name1)
+    parse_NMEA2db(file_name2)
+    file_name3 = "/home/leo/PycharmProjects/KML_resources/bak/Teseo.log.csv"
+    file_name4 = "/home/leo/PycharmProjects/KML_resources/bak/Ground_Truth.log.csv"
+    compare_position(file_name3, file_name4)
 
 
